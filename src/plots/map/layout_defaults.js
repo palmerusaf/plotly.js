@@ -18,11 +18,15 @@ module.exports = function supplyLayoutDefaults(layoutIn, layoutOut, fullData) {
 };
 
 function handleDefaults(containerIn, containerOut, coerce, opts) {
-    var [{lon, lat}] = opts.fullData
+    var [{ lon, lat }] = opts.fullData;
+    var { minLon, maxLon } = getMinBoundLon(lon);
+    var { minLat, maxLat } = getMinBoundLat(lat);
+    var centerLon = getCenter(minLon, maxLon);
+    var centerLat = getCenter(minLat, maxLat);
     coerce('style');
-    coerce('center.lon');
-    coerce('center.lat');
-    coerce('zoom');
+    coerce('center.lon', centerLon);
+    coerce('center.lat', centerLat);
+    coerce('zoom', setZoom({minLon, maxLon, minLat, maxLat}));
     coerce('bearing');
     coerce('pitch');
 
@@ -46,6 +50,64 @@ function handleDefaults(containerIn, containerOut, coerce, opts) {
 
     // copy ref to input container to update 'center' and 'zoom' on map move
     containerOut._input = containerIn;
+}
+
+function getMinBoundLon(lon) {
+    if (!lon.length) return { minLon: 0, maxLon: 0 };
+
+    // normalize to [0, 360)
+    const norm = lon.map(l => ((l % 360) + 360) % 360).sort((a, b) => a - b);
+
+    let maxGap = -1;
+    let gapIndex = 0;
+
+    for (let i = 0; i < norm.length; i++) {
+        const curr = norm[i];
+        const next = norm[(i + 1) % norm.length];
+        const gap = (next - curr + 360) % 360;
+
+        if (gap > maxGap) {
+            maxGap = gap;
+            gapIndex = i;
+        }
+    }
+
+    // smallest arc is outside the largest gap
+    let minLon = norm[(gapIndex + 1) % norm.length];
+    let maxLon = norm[gapIndex];
+
+    // convert back to [-180, 180]
+    if (minLon > 180) minLon -= 360;
+    if (maxLon > 180) maxLon -= 360;
+
+    return { minLon, maxLon };
+}
+
+function getMinBoundLat(lat) {
+    return {
+        minLat: Math.min(...lat),
+        maxLat: Math.max(...lat)
+    };
+}
+
+function getCenter(min, max) {
+    // handle antimeridian crossing
+    if (min > max) {
+        return ((min + max + 360) / 2 + 180) % 360 - 180;
+    }
+    return (min + max) / 2;
+}
+
+function setZoom({minLon, maxLon, minLat, maxLat}) {
+    const lonSpan =
+        minLon <= maxLon
+            ? maxLon - minLon
+            : 360 - (minLon - maxLon)
+
+    const latSpan = maxLat - minLat;
+    const span = Math.max(lonSpan, latSpan);
+    const scaler = span==latSpan?0.04:0.1;
+    return span * scaler;
 }
 
 function handleLayerDefaults(layerIn, layerOut) {
