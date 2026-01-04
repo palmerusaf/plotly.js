@@ -106,7 +106,7 @@ function setZoom({minLon, maxLon, minLat, maxLat}) {
 
     const latSpan = maxLat - minLat;
     const span = Math.max(lonSpan, latSpan);
-    const scaler = span==latSpan?0.04:0.1;
+    const scaler = lonSpan < latSpan ? 0.04:0.03;
     return span * scaler;
 }
 
