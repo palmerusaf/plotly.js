@@ -21,15 +21,17 @@ function handleDefaults(containerIn, containerOut, coerce, opts) {
     var [{ lon, lat }] = opts.fullData;
     var { minLon, maxLon } = getMinBoundLon(lon);
     var { minLat, maxLat } = getMinBoundLat(lat);
-    var centerLon = getCenter(minLon, maxLon);
-    var centerLat = getCenter(minLat, maxLat);
     coerce('style');
-    coerce('center.lon', centerLon);
-    coerce('center.lat', centerLat);
-    coerce('zoom', setZoom({minLon, maxLon, minLat, maxLat}));
     coerce('bearing');
     coerce('pitch');
 
+    // this is for zooming on bounds, this is called bounds in the maplibre ctor
+    coerce('fitBounds.west', minLon);
+    coerce('fitBounds.east', maxLon);
+    coerce('fitBounds.south', minLat);
+    coerce('fitBounds.north', maxLat);
+
+    //bounds is really for setting maxBounds
     var west = coerce('bounds.west');
     var east = coerce('bounds.east');
     var south = coerce('bounds.south');
@@ -88,26 +90,6 @@ function getMinBoundLat(lat) {
         minLat: Math.min(...lat),
         maxLat: Math.max(...lat)
     };
-}
-
-function getCenter(min, max) {
-    // handle antimeridian crossing
-    if (min > max) {
-        return ((min + max + 360) / 2 + 180) % 360 - 180;
-    }
-    return (min + max) / 2;
-}
-
-function setZoom({minLon, maxLon, minLat, maxLat}) {
-    const lonSpan =
-        minLon <= maxLon
-            ? maxLon - minLon
-            : 360 - (minLon - maxLon)
-
-    const latSpan = maxLat - minLat;
-    const span = Math.max(lonSpan, latSpan);
-    const scaler = lonSpan < latSpan ? 0.04:0.03;
-    return span * scaler;
 }
 
 function handleLayerDefaults(layerIn, layerOut) {
