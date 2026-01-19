@@ -21,17 +21,23 @@ function handleDefaults(containerIn, containerOut, coerce, opts) {
     var [{ lon, lat }] = opts.fullData;
     var { minLon, maxLon } = getMinBoundLon(lon);
     var { minLat, maxLat } = getMinBoundLat(lat);
-    coerce('style');
     coerce('bearing');
+    coerce('center.lat');
+    coerce('center.lon');
     coerce('pitch');
+    coerce('style');
+    coerce('zoom');
 
-    // this is for zooming on bounds, this is called bounds in the maplibre ctor
-    coerce('fitBounds.west', minLon);
-    coerce('fitBounds.east', maxLon);
-    coerce('fitBounds.south', minLat);
-    coerce('fitBounds.north', maxLat);
+    // set the zoom/center based on bounding box
+    // this param is called bounds in mapLibre ctor
+    containerOut.fitBounds = {
+        west:  minLon,
+        east:  maxLon,
+        south: minLat,
+        north: maxLat,
+    };
 
-    //bounds is really for setting maxBounds
+    // bounds is really for setting maxBounds in mapLibre
     var west = coerce('bounds.west');
     var east = coerce('bounds.east');
     var south = coerce('bounds.south');
