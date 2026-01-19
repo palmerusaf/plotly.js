@@ -18,9 +18,6 @@ module.exports = function supplyLayoutDefaults(layoutIn, layoutOut, fullData) {
 };
 
 function handleDefaults(containerIn, containerOut, coerce, opts) {
-    var [{ lon, lat }] = opts.fullData;
-    var { minLon, maxLon } = getMinBoundLon(lon);
-    var { minLat, maxLat } = getMinBoundLat(lat);
     coerce('bearing');
     coerce('center.lat');
     coerce('center.lon');
@@ -28,16 +25,24 @@ function handleDefaults(containerIn, containerOut, coerce, opts) {
     coerce('style');
     coerce('zoom');
 
-    // set the zoom/center based on bounding box
-    // this param is called bounds in mapLibre ctor
-    containerOut.fitBounds = {
-        west:  minLon,
-        east:  maxLon,
-        south: minLat,
-        north: maxLat,
-    };
+    debugger;
+    // dynamically set center/zoom if neither param provided
+    if (!containerIn?.center && !containerIn?.zoom) {
+        var [{ lon, lat }] = opts.fullData;
+        var { minLon, maxLon } = getMinBoundLon(lon);
+        var { minLat, maxLat } = getMinBoundLat(lat);
+        // set the zoom/center based on bounding box
+        // this param is called bounds in mapLibre ctor
+        // not to be confused with max bounds aliased below
+        containerOut.fitBounds = {
+            west:  minLon,
+            east:  maxLon,
+            south: minLat,
+            north: maxLat,
+        };
+    }
 
-    // bounds is really for setting maxBounds in mapLibre
+    // bounds is really for setting maxBounds in mapLibre ctor
     var west = coerce('bounds.west');
     var east = coerce('bounds.east');
     var south = coerce('bounds.south');
