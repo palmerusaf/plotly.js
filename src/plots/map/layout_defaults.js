@@ -5,6 +5,7 @@ var Lib = require('../../lib');
 var handleSubplotDefaults = require('../subplot_defaults');
 var handleArrayContainerDefaults = require('../array_container_defaults');
 var layoutAttributes = require('./layout_attributes');
+const { computeBbox } = require('../../lib/geo_location_utils');
 
 
 module.exports = function supplyLayoutDefaults(layoutIn, layoutOut, fullData) {
@@ -31,7 +32,6 @@ function handleDefaults(containerIn, containerOut, coerce, opts) {
         var [{ lon, lat }] = opts.fullData;
         var { minLon, maxLon } = getMinBoundLon(lon);
         var { minLat, maxLat } = getMinBoundLat(lat);
-        // set the zoom/center based on bounding box
         // this param is called bounds in mapLibre ctor
         // not to be confused with max bounds aliased below
         containerOut.fitBounds = {
@@ -68,12 +68,13 @@ function handleDefaults(containerIn, containerOut, coerce, opts) {
 function getMinBoundLon(lon) {
     if (!lon.length) return { minLon: 0, maxLon: 0 };
 
-    // normalize to [0, 360)
-    const norm = lon.map(l => ((l % 360) + 360) % 360).sort((a, b) => a - b);
+    // normalize to [0, 360) 
+    const norm = lon.map(to360).sort((a, b) => a - b);
 
     let maxGap = -1;
     let gapIndex = 0;
 
+    // find largest gap
     for (let i = 0; i < norm.length; i++) {
         const curr = norm[i];
         const next = norm[(i + 1) % norm.length];
@@ -85,15 +86,21 @@ function getMinBoundLon(lon) {
         }
     }
 
-    // smallest arc is outside the largest gap
+    // take complement of largest gap
     let minLon = norm[(gapIndex + 1) % norm.length];
     let maxLon = norm[gapIndex];
-
-    // convert back to [-180, 180]
-    if (minLon > 180) minLon -= 360;
-    if (maxLon > 180) maxLon -= 360;
+    minLon = to180(minLon)
+    maxLon = to180(maxLon)
 
     return { minLon, maxLon };
+
+    // https://gis.stackexchange.com/questions/201789/verifying-formula-that-will-convert-longitude-0-360-to-180-to-180
+    function to180(deg) {
+        return ((deg + 180) % 360) - 180
+    }
+    function to360(deg) {
+        return deg % 360
+    }
 }
 
 function getMinBoundLat(lat) {
