@@ -81,7 +81,6 @@ proto.createMap = function(calcData, fullLayout, resolve, reject) {
     var bounds = opts.bounds;
     var maxBounds = bounds ? [[bounds.west, bounds.south], [bounds.east, bounds.north]] : null;
     var fitBounds = opts.fitBounds ? [[opts.fitBounds.west, opts.fitBounds.south], [opts.fitBounds.east, opts.fitBounds.north]] : null;
-    debugger
 
     // create the map!
     var map = self.map = new maplibregl.Map({
